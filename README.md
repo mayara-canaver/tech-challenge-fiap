@@ -1,4 +1,3 @@
-````markdown
 # Tech Challenge FIAP - API Pública de Livros
 
 ![Framework: Flask](https://img.shields.io/badge/Framework-Flask-blue)
@@ -370,5 +369,5 @@ except requests.exceptions.RequestException as e:
 
 ## 👥 Contribuidores
 
-[mayara-canaver] (https://github.com/mayara-canaver)
+[mayara-canaver](https://github.com/mayara-canaver)
 [eduardohenrik](https://github.com/eduardohenrik)
