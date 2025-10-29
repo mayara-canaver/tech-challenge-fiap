@@ -61,7 +61,7 @@ graph TD
 
 -----
 
-## 2\. ⚙️ Instruções de Instalação e Configuração
+## 2\. Instruções de Instalação e Configuração
 
 Para executar este projeto localmente, siga os passos abaixo.
 
@@ -113,7 +113,7 @@ Para executar este projeto localmente, siga os passos abaixo.
 
 -----
 
-## 3\. 🚀 Instruções de Execução
+## 3\. Instruções de Execução
 
 O projeto é dividido em duas etapas: a geração dos dados (ETL) e a execução da API.
 
@@ -144,7 +144,7 @@ O servidor estará disponível localmente no endereço: `http://127.0.0.1:5000`.
 
 -----
 
-## 4\. 📚 Documentação das Rotas da API
+## 4\. Documentação das Rotas da API
 
 A API é implementada com Flask e não possui o Swagger configurado. Abaixo está a documentação manual dos endpoints disponíveis.
 
