@@ -9,7 +9,7 @@ Este projeto é a solução para o Tech Challenge da pós-graduação em Machine
 
 ### Links de Referência
 
-* **Link do Deploy (Produção):** `https://tech-challenge-fiap-no1e.onrender.com`
+* **Link do Deploy (Produção):** `(https://tech-challenge-fiap-no1e.onrender.com)`
 * **Link do Vídeo de Apresentação:** `[]`
 
 ---
@@ -57,7 +57,6 @@ graph TD
         J --> K(Serviço Público no Render);
         K --> L[Consumidores (Cientistas de Dados, ML)];
     end
-````
 
 -----
 
@@ -295,7 +294,7 @@ curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/categories'
 **3. Obter um Livro por ID** (Exemplo: "A Light in the Attic")
 
 ```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/a897fe39b1053632'
+curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/13-hours-the-inside-account-of-what-really-happened-in-benghazi_645'
 ```
 
 **4. Buscar por Título (que contenha "Music")**
