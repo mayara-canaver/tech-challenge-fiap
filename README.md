@@ -9,7 +9,7 @@ Este projeto é a solução para o Tech Challenge da pós-graduação em Machine
 
 ### Links de Referência
 
-* **Link do Deploy (Produção):** `[https://tech-challenge-fiap-no1e.onrender.com](https://tech-challenge-fiap-no1e.onrender.com)`
+* **Link do Deploy (Produção):** [https://tech-challenge-fiap-no1e.onrender.com](https://tech-challenge-fiap-no1e.onrender.com)
 * **Link do Vídeo de Apresentação:** `[]`
 
 ---
