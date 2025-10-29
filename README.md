@@ -55,8 +55,9 @@ graph TD
     subgraph "4. Deploy & Consumo"
         I --> J(Deploy: render.yaml);
         J --> K(Serviço Público no Render);
-        K --> L[Consumidores (Cientistas de Dados, ML)];
+        K --> L["Consumidores (Cientistas de Dados, ML)"];
     end
+````
 
 -----
 
