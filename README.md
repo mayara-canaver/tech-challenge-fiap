@@ -364,9 +364,6 @@ except requests.exceptions.RequestException as e:
     print(f"Erro ao conectar-se à API: {e}")
 ```
 
-```
-```
-
 ## 👥 Contribuidores
 
 [mayara-canaver](https://github.com/mayara-canaver)
