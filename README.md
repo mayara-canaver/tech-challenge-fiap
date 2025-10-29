@@ -276,7 +276,7 @@ A API também implementa os endpoints de insights:
 
 ## 5\. 💡 Exemplos de Chamadas (Requests/Responses)
 
-Substitua `https://tech-challenge-fiap-no1e.onrender.com` por `http://127.0.0.1:5000` (local) ou pela URL do seu deploy público.
+Substitua `https://tech-challenge-fiap-no1e.onrender.com` por `http://127.0.0.1:5000` (URL local) 
 
 ### Usando `curl` (Terminal)
 
@@ -325,7 +325,7 @@ import requests
 import pandas as pd
 
 # Use a URL do deploy ou a URL local
-BASE_URL = "https://tech-challenge-fiap-no1e.onrender.com"  # Ex: "[http://127.0.0.1:5000](http://127.0.0.1:5000)"
+BASE_URL = "https://tech-challenge-fiap-no1e.onrender.com"  # Ex: "http://127.0.0.1:5000"
 
 try:
     # 1. Verificar a saúde da API
