@@ -66,3 +66,44 @@ def dataset_path() -> Path:
     """Retorna o caminho real usado pelo loader (útil para /health)."""
     #return PARQUET_PATH if PARQUET_PATH.exists() else CSV_PATH
     return CSV_PATH
+
+def _cat_index_map(df: pd.DataFrame, col: str) -> dict:
+    cats = (
+        df[col].fillna("")
+        .astype(str).str.strip()
+        .replace("", pd.NA).dropna()
+        .drop_duplicates().sort_values()
+        .tolist()
+    )
+    return {c: i for i, c in enumerate(cats)}
+
+def build_ml_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Constrói features ML-ready:
+      - id (string)
+      - price (float)
+      - rating (int)
+      - category_idx (int codificado)
+      - title_len (int: número de caracteres)
+      - title_tok (int: número de tokens por espaço)
+      - has_image (0/1)
+    """
+    d = df.copy()
+
+    d["title"] = d["title"].fillna("").astype(str)
+    d["category"] = d["category"].fillna("").astype(str)
+
+    cat2idx = _cat_index_map(d, "category")
+    d["category_idx"] = d["category"].map(cat2idx).fillna(-1).astype(int)
+
+    d["title_len"] = d["title"].str.len().fillna(0).astype(int)
+    d["title_tok"] = d["title"].str.split().map(len).fillna(0).astype(int)
+
+    d["has_image"] = d["image_path"].notna().astype(int) if "image_path" in d.columns else 0
+
+    cols = ["id", "price", "rating", "category_idx", "title_len", "title_tok", "has_image"]
+    # garante existência
+    for c in cols:
+        if c not in d.columns:
+            d[c] = 0
+    return d[cols]
