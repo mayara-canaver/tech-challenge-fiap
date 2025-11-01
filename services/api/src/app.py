@@ -3,13 +3,16 @@ import pandas as pd
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from pathlib import Path
+import json
+import time
 from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
     jwt_required, get_jwt, get_jwt_identity
 )
 from services.api.utils.helpers import load_books_df, project_list, dataset_path, REQUIRED_COLS
 from flask_cors import CORS
-from flasgger import Swagger  # Importar o Flasgger
+from flasgger import Swagger
 
 load_dotenv()
 
@@ -673,6 +676,113 @@ def create_app() -> Flask:
             "price": price_stats,
             "rating_distribution": rating_dist
         })
+    
+    # ========= ML-READY: FEATURES =========
+    @app.get("/api/v1/ml/features")
+    def ml_features():
+        """
+        Retorna features por livro (paginação opcional):
+          - id, price, rating, category_idx, title_len, title_tok, has_image
+        Params:
+          - page, size
+          - format=csv (opcional) -> retorna CSV
+        """
+        df = load_books_df()
+        if df is None or df.empty:
+            return jsonify({"error": "dataset indisponível"}), 503
+
+        feats = build_ml_features(df)
+
+        fmt = request.args.get("format", "json").lower()
+        if fmt == "csv":
+            # exporta tudo (ou pagina se preferir)
+            csv = feats.to_csv(index=False)
+            return app.response_class(csv, mimetype="text/csv")
+        else:
+            page = int(request.args.get("page", 1))
+            size = int(request.args.get("size", 100))
+            start = max((page - 1) * size, 0)
+            total = int(len(feats))
+            items = feats.iloc[start:start + size].to_dict(orient="records")
+            return jsonify({"items": items, "page": page, "size": size, "total": total})
+
+    # ========= ML-READY: TRAINING DATA =========
+    @app.get("/api/v1/ml/training-data")
+    def ml_training_data():
+        """
+        Retorna dataset de treino (features + alvo sintético)
+        Alvo: target_high_rating = 1 se rating >= 4, senão 0.
+        Params:
+          - format=csv/json
+        """
+        df = load_books_df()
+        if df is None or df.empty:
+            return jsonify({"error": "dataset indisponível"}), 503
+
+        feats = build_ml_features(df)
+        feats["target_high_rating"] = (feats["rating"] >= 4).astype(int)
+
+        fmt = request.args.get("format", "csv").lower()
+        if fmt == "json":
+            return jsonify({"items": feats.to_dict(orient="records"), "total": int(len(feats))})
+        else:
+            csv = feats.to_csv(index=False)
+            return app.response_class(csv, mimetype="text/csv")
+        
+    # ========= ML-READY: RECEBIMENTO DE PREDIÇÕES =========
+    # Forma de payload:
+    # {
+    #   "model": "nome_modelo_v1",
+    #   "predictions": [
+    #       {"id": "a-book-id", "y_pred": 0.87},
+    #       {"id": "another-id", "y_pred": 0.12}
+    #   ]
+    # }
+    ml_dir = (Path(__file__).resolve().parents[3] / "data" / "ml")
+    ml_dir.mkdir(parents=True, exist_ok=True)
+
+    @app.post("/api/v1/ml/predictions")
+    def ml_predictions():
+        """
+        Recebe predições e persiste em JSONL (para avaliação posterior).
+        Retorna contagem validada.
+        """
+        payload = request.get_json(silent=True) or {}
+        model = (payload.get("model") or "").strip()
+        preds = payload.get("predictions") or []
+
+        if not model or not isinstance(preds, list) or not preds:
+            return jsonify({"error": "payload inválido: informe 'model' e lista 'predictions'"}), 400
+
+        # validações simples
+        ok, bad = [], []
+        for p in preds:
+            bid = (p.get("id") or "").strip()
+            y  = p.get("y_pred")
+            if not bid:
+                bad.append({"reason": "missing id", "item": p})
+                continue
+            try:
+                y = float(y)
+            except Exception:
+                bad.append({"reason": "y_pred não numérico", "item": p})
+                continue
+            ok.append({"id": bid, "y_pred": y})
+
+        # escreve JSONL com timestamp
+        ts = time.strftime("%Y%m%d-%H%M%S")
+        out_path = ml_dir / f"predictions_{model}_{ts}.jsonl"
+        with open(out_path, "w", encoding="utf-8") as f:
+            for r in ok:
+                f.write(json.dumps({"model": model, **r}, ensure_ascii=False) + "\n")
+
+        return jsonify({
+            "model": model,
+            "saved_file": str(out_path),
+            "accepted": len(ok),
+            "rejected": len(bad),
+            "rejected_detail": bad[:5]  # limita retorno
+        }), 202
 
     return app
 
@@ -680,3 +790,4 @@ if __name__ == "__main__":
     app = create_app()
     CORS(app) # Adiciona CORS para testes locais
     app.run(host="127.0.0.1", port=5000, debug=True)
+    
