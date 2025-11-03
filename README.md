@@ -105,11 +105,11 @@ Para executar este projeto localmente, siga os passos abaixo.
 
     ```.env
     # Chave secreta para o JWT (pode ser qualquer string segura)
-    JWT_SECRET="S3CR3T_K3Y_F0R_JWT_!@#"
+    JWT_SECRET="************************"
 
     # Credenciais do usuário administrador da API
     ADMIN_USER="admin"
-    ADMIN_PASS="admin123"
+    ADMIN_PASS="*********"
     ```
 
 -----
@@ -135,7 +135,6 @@ python services/scraper/src/transformers/clean_books.py
 Após os arquivos de dados serem gerados, é possível iniciar o servidor da API:
 
 ```bash
-# O 'app.py' contém a lógica para rodar em modo debug
 python services/api/src/app.py
 ```
 
@@ -161,7 +160,7 @@ A API utiliza **Flasgger** para gerar a documentação interativa (Swagger UI), 
         "dataset_path": ".../data/silver/books.parquet",
         "exists": true,
         "rows": 1000,
-        "columns_present": [...],
+        "columns_present": [],
         "columns_required_ok": true
       }
     }
@@ -177,7 +176,6 @@ A API utiliza **Flasgger** para gerar a documentação interativa (Swagger UI), 
         "add a comment",
         "art",
         "business",
-        ...
       ],
       "total": 50
     }
@@ -201,7 +199,6 @@ A API utiliza **Flasgger** para gerar a documentação interativa (Swagger UI), 
           "price": 51.77,
           "rating": 3
         },
-        ...
       ],
       "page": 1,
       "size": 20,
@@ -250,7 +247,6 @@ A API utiliza **Flasgger** para gerar a documentação interativa (Swagger UI), 
           "id": "c21f5533b3187122",
           "title": "the secret garden",
           "category": "classic",
-          ...
         }
       ],
       "page": 1,
@@ -279,7 +275,7 @@ Endpoints protegidos (como os de *Insights* e *Admin*) requerem um Token JWT no 
     ```json
     {
       "username": "admin",
-      "password": "admin123"
+      "password": "*******"
     }
     ```
   * **Resposta (200 OK):**
@@ -332,7 +328,7 @@ Endpoints criados para facilitar o consumo direto por Cientistas de Dados e mode
           "category_idx": 3,
           "title_len": 17,
           "has_image": true
-        }, ...
+        }, 
       ],
       "page": 1,
       "size": 100,
@@ -403,7 +399,7 @@ curl -X 'GET' '[URL_BASE]/api/v1/books/search?title=Music'
 # (Este comando usa 'jq' para extrair o token, ou você pode copiar manualmente)
 TOKEN=$(curl -s -X 'POST' '[URL_BASE]/api/v1/auth/login' \
   -H 'Content-Type: application/json' \
-  -d '{"username": "admin", "password": "admin123"}' \
+  -d '{"username": "admin", "password": "*******"}' \
   | jq -r .access_token)
 
 echo "Token obtido: $TOKEN"
@@ -444,7 +440,7 @@ import pandas as pd
 import json
 
 # Use a URL do deploy ou a URL local
-BASE_URL = "[https://tech-challenge-fiap-no1e.onrender.com](https://tech-challenge-fiap-no1e.onrender.com)"  # Ex: "[http://127.0.0.1:5000](http://127.0.0.1:5000)"
+BASE_URL = "https://tech-challenge-fiap-no1e.onrender.com"  # Ex: "http://127.0.0.1:5000"
 
 try:
     # 1. Verificar a saúde da API
@@ -468,7 +464,7 @@ try:
     print("\nAutenticando...")
     auth_payload = {
         "username": "admin", # Use suas credenciais
-        "password": "admin123"
+        "password": "*******"
     }
     auth_resp = requests.post(f"{BASE_URL}/api/v1/auth/login", json=auth_payload)
     auth_resp.raise_for_status()
