@@ -10,7 +10,8 @@ Este projeto é a solução para o Tech Challenge da pós-graduação em Machine
 ### Links de Referência
 
 * **Link do Deploy (Produção):** [https://tech-challenge-fiap-no1e.onrender.com](https://tech-challenge-fiap-no1e.onrender.com)
-* **Link do Vídeo de Apresentação:** `[]`
+* **Link do Vídeo de Apresentação:** `[INSERIR SEU VÍDEO AQUI]`
+* **Link da Documentação (Swagger):** [https://tech-challenge-fiap-no1e.onrender.com/apidocs/](https://tech-challenge-fiap-no1e.onrender.com/apidocs/)
 
 ---
 
@@ -18,7 +19,7 @@ Este projeto é a solução para o Tech Challenge da pós-graduação em Machine
 
 ### Descrição
 
-Como primeiro desafio para um projeto de recomendação de livros, esta solução foca em construir o pipeline de dados fundamental. O objetivo é extrair dados de livros do site público `https://books.toscrape.com/`, processá-los e disponibilizá-los através de uma API RESTful pública, robusta e documentada, pronta para ser consumida por Cientistas de Dados e serviços de ML.
+Como primeiro desafio para um projeto de recomendação de livros, esta solução foca em construir o pipeline de dados fundamental. O objetivo é extrair dados de livros do site público `https://books.toscrape.com/`, processá-los e disponibilizá-los através de uma API RESTful pública, robusta e documentada (via Swagger/Flasgger), pronta para ser consumida por Cientistas de Dados e serviços de ML.
 
 ### Arquitetura do Pipeline
 
@@ -27,7 +28,7 @@ O pipeline de dados segue um fluxo ETL (Extract, Transform, Load) que alimenta a
 1.  **Ingestão (Extract):** O script `services/scraper/src/extractors/scrape_books.py` realiza o web scraping do site, navegando por todas as categorias e páginas para extrair os dados brutos de cada livro.
 2.  **Camada Bronze:** Os dados brutos extraídos são salvos em `data/bronze/books.csv`.
 3.  **Processamento (Transform):** O script `services/scraper/src/transformers/clean_books.py` lê os dados da camada Bronze. Ele realiza a limpeza e normalização (conversão de preços, normalização de texto, tratamento de ratings).
-4.  **Camada Silver (Load):** Os dados limpos e prontos para consumo são salvos em `data/silver/books.csv` e `data/silver/books.parquet`.
+4.  **Camada Silver (Load):** Os dados limpos e prontos para consumo são salvos em `data/silver/books.parquet`.
 5.  **Disponibilização (API):** A API (Flask), definida em `services/api/src/app.py`, carrega o arquivo `books.parquet` da camada Silver para disponibilizar os dados através de endpoints RESTful.
 6.  **Deploy:** A aplicação é configurada para deploy na plataforma Render através do arquivo `render.yaml`, que utiliza o Gunicorn como servidor WSGI.
 
@@ -75,7 +76,7 @@ Para executar este projeto localmente, siga os passos abaixo.
 1.  **Clone o repositório:**
 
     ```bash
-    git clone https://github.com/mayara-canaver/tech-challenge-1-fiap.git
+    git clone [https://github.com/mayara-canaver/tech-challenge-1-fiap.git](https://github.com/mayara-canaver/tech-challenge-1-fiap.git)
     cd tech-challenge-1-fiap
     ```
 
@@ -139,16 +140,13 @@ python services/api/src/app.py
 ```
 
 O servidor estará disponível localmente no endereço: `http://127.0.0.1:5000`.
-
-*(Nota: O deploy em produção utiliza o `gunicorn` conforme definido no `render.yaml`, mas para desenvolvimento local, executar o `app.py` é suficiente.)*
+A documentação Swagger estará disponível em: `http://127.0.0.1:5000/apidocs/`
 
 -----
 
 ## 4\. Documentação das Rotas da API
 
-A API é implementada com Flask e não possui o Swagger configurado. Abaixo está a documentação manual dos endpoints disponíveis.
-
-*(Nota: Alguns endpoints (como `/trigger`) exigem autenticação. Você pode obter um token fazendo um POST em `/api/v1/auth/login` com o `ADMIN_USER` e `ADMIN_PASS` definidos no seu `.env` file.)*
+A API utiliza **Flasgger** para gerar a documentação interativa (Swagger UI), disponível na rota `/apidocs/`.
 
 ### Endpoints Obrigatórios
 
@@ -221,11 +219,10 @@ A API é implementada com Flask e não possui o Swagger configurado. Abaixo est�
       "book_title": "a light in the attic",
       "category": "poetry",
       "id": "a897fe39b1053632",
-      "image_path": null,
-      "image_url": "[https://books.toscrape.com/media/cache/2c/da/2cdad67c44b002e7ead0cc35693c0e8b.jpg](https://books.toscrape.com/media/cache/2c/da/2cdad67c44b002e7ead0cc35693c0e8b.jpg)",
+      "image_url": "...",
       "instock": 22,
       "price": 51.77,
-      "product_url": "[https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html](https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html)",
+      "product_url": "...",
       "rating": 3,
       "title": "a light in the attic"
     }
@@ -253,8 +250,7 @@ A API é implementada com Flask e não possui o Swagger configurado. Abaixo est�
           "id": "c21f5533b3187122",
           "title": "the secret garden",
           "category": "classic",
-          "price": 15.08,
-          "rating": 4
+          ...
         }
       ],
       "page": 1,
@@ -265,8 +261,6 @@ A API é implementada com Flask e não possui o Swagger configurado. Abaixo est�
 
 ### Endpoints de Insights (Opcionais)
 
-A API também implementa os endpoints de insights:
-
   * **`GET /api/v1/books/top-rated`**: Filtra livros com base em uma nota mínima (`min_rating`).
   * **`GET /api/v1/books/price-range`**: Filtra livros dentro de uma faixa de preço (`min`, `max`).
   * **`GET /api/v1/stats/overview`**: Retorna estatísticas gerais da coleção (total de livros, categorias, estatísticas de preço e distribuição de ratings).
@@ -274,58 +268,183 @@ A API também implementa os endpoints de insights:
 
 -----
 
+### Desafio 1: Sistema de Autenticação (JWT)
+
+Endpoints protegidos (como os de *Insights* e *Admin*) requerem um Token JWT no header `Authorization: Bearer <token>`.
+
+#### `POST /api/v1/auth/login`
+
+  * **Descrição:** Autentica um usuário (definido nas variáveis de ambiente `ADMIN_USER` e `ADMIN_PASS`) e retorna um `access_token` e `refresh_token`.
+  * **Request Body:**
+    ```json
+    {
+      "username": "admin",
+      "password": "admin123"
+    }
+    ```
+  * **Resposta (200 OK):**
+    ```json
+    {
+      "access_token": "...",
+      "refresh_token": "..."
+    }
+    ```
+
+#### `POST /api/v1/auth/refresh`
+
+  * **Descrição:** 🔒 Permite renovar um `access_token` expirado. Requer um `refresh_token` válido no header `Authorization`.
+  * **Resposta (200 OK):**
+    ```json
+    {
+      "access_token": "..."
+    }
+    ```
+
+#### `POST /api/v1/scraping/trigger`
+
+  * **Descrição:** 🔒 [Admin] Endpoint protegido (stub) que, em um cenário de produção, acionaria o pipeline de ETL (scraping + cleaning). Requer privilégios de admin.
+  * **Resposta (202 Accepted):**
+    ```json
+    {
+      "msg": "trigger recebido (stub). Em produção chamaria o job ETL."
+    }
+    ```
+
+-----
+
+### Desafio 2: Pipeline ML-Ready
+
+Endpoints criados para facilitar o consumo direto por Cientistas de Dados e modelos de ML.
+
+#### `GET /api/v1/ml/features`
+
+  * **Descrição:** 🔒 Retorna dados formatados (features) para inferência ou análise.
+  * **Query Params:**
+      * `format` (string, opcional, default=json): Pode ser alterado para `csv` para baixar o dataset.
+  * **Resposta (200 OK - JSON):**
+    ```json
+    {
+      "items": [
+        {
+          "id": "a897fe39b1053632",
+          "price": 51.77,
+          "rating": 3,
+          "category_idx": 3,
+          "title_len": 17,
+          "has_image": true
+        }, ...
+      ],
+      "page": 1,
+      "size": 100,
+      "total": 1000
+    }
+    ```
+
+#### `GET /api/v1/ml/training-data`
+
+  * **Descrição:** 🔒 Retorna um dataset de treinamento completo, com features e um alvo sintético (`target_high_rating`).
+  * **Query Params:**
+      * `format` (string, opcional, default=csv): Retorna o dataset de treino em formato CSV (default) ou JSON.
+  * **Resposta (200 OK - CSV):**
+    ```csv
+    id,price,rating,category_idx,title_len,has_image,target_high_rating
+    a897fe39b1053632,51.77,3,3,17,1,0
+    ce60436f52c5ee68,53.74,1,1,16,1,0
+    ...
+    ```
+
+#### `POST /api/v1/ml/predictions`
+
+  * **Descrição:** 🔒 Endpoint para receber e persistir predições de um modelo de ML.
+  * **Request Body:**
+    ```json
+    {
+      "model": "model_v1_teste",
+      "predictions": [
+          {"id": "a897fe39b1053632", "y_pred": 0.87},
+          {"id": "ce60436f52c5ee68", "y_pred": 0.12}
+      ]
+    }
+    ```
+  * **Resposta (202 Accepted):**
+    ```json
+    {
+      "model": "model_v1_teste",
+      "saved_file": ".../data/ml/predictions_model_v1_teste_....jsonl",
+      "accepted": 2,
+      "rejected": 0
+    }
+    ```
+
+-----
+
 ## 5\. 💡 Exemplos de Chamadas (Requests/Responses)
 
-Substitua `https://tech-challenge-fiap-no1e.onrender.com` por `http://127.0.0.1:5000` (URL local) 
+Substitua `[URL_BASE]` por `http://127.0.0.1:5000` (local) ou pela URL do seu deploy público.
 
 ### Usando `curl` (Terminal)
 
 **1. Verificar Saúde da API**
 
 ```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/health'
+curl -X 'GET' '[URL_BASE]/api/v1/health'
 ```
 
-**2. Listar Categorias**
+**2. Buscar por Título (que contenha "Music")**
 
 ```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/categories'
+curl -X 'GET' '[URL_BASE]/api/v1/books/search?title=Music'
 ```
 
-**3. Obter um Livro por ID** (Exemplo: "A Light in the Attic")
+**3. Testando a Autenticação (Desafio 1)**
 
 ```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/13-hours-the-inside-account-of-what-really-happened-in-benghazi_645'
+# 3.1. Fazer login e salvar o token (ajuste usuário/senha se necessário)
+# (Este comando usa 'jq' para extrair o token, ou você pode copiar manualmente)
+TOKEN=$(curl -s -X 'POST' '[URL_BASE]/api/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"username": "admin", "password": "admin123"}' \
+  | jq -r .access_token)
+
+echo "Token obtido: $TOKEN"
+
+# 3.2. Usar o token para acessar um endpoint protegido (ex: /stats/overview)
+curl -X 'GET' '[URL_BASE]/api/v1/stats/overview' \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-**4. Buscar por Título (que contenha "Music")**
+**4. Testando o Pipeline ML-Ready (Desafio 2)**
 
 ```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/search?title=Music'
-```
+# (Requer o $TOKEN do passo anterior)
 
-**5. Buscar por Categoria (exata: "History")**
+# 4.1. Obter dados de features em formato CSV
+curl -X 'GET' '[URL_BASE]/api/v1/ml/training-data?format=csv' \
+  -H "Authorization: Bearer $TOKEN" \
+  -o "training_data.csv"
 
-```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/search?category=History'
-```
-
-**6. Buscar Livros de "Mystery" que contenham "The" no título**
-
-```bash
-curl -X 'GET' 'https://tech-challenge-fiap-no1e.onrender.com/api/v1/books/search?title=The&category=Mystery'
+# 4.2. Enviar predições (stub)
+curl -X 'POST' '[URL_BASE]/api/v1/ml/predictions' \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "model": "local_test_v1",
+        "predictions": [
+            {"id": "a897fe39b1053632", "y_pred": 0.99},
+            {"id": "ce60436f52c5ee68", "y_pred": 0.01}
+        ]
+      }'
 ```
 
 ### Usando Python (Cenário do Cientista de Dados)
 
-Este é um exemplo de como um Cientista de Dados consumiria a API para carregar os dados em um DataFrame do Pandas para análise.
-
 ```python
 import requests
 import pandas as pd
+import json
 
 # Use a URL do deploy ou a URL local
-BASE_URL = "https://tech-challenge-fiap-no1e.onrender.com"  # Ex: "http://127.0.0.1:5000"
+BASE_URL = "[https://tech-challenge-fiap-no1e.onrender.com](https://tech-challenge-fiap-no1e.onrender.com)"  # Ex: "[http://127.0.0.1:5000](http://127.0.0.1:5000)"
 
 try:
     # 1. Verificar a saúde da API
@@ -333,33 +452,43 @@ try:
     health_check.raise_for_status()
     print("API Status:", health_check.json()['status'])
 
-    # 2. Fazer a requisição para o endpoint de busca
-    # Buscar todos os livros da categoria "Science Fiction"
+    # 2. Fazer a requisição para o endpoint de busca (público)
     print("\nBuscando livros de 'Science Fiction'...")
     params = {
         "category": "Science Fiction",
-        "size": 100 # Pedir um tamanho grande para pegar todos
+        "size": 100 
     }
     response = requests.get(f"{BASE_URL}/api/v1/books/search", params=params)
     response.raise_for_status() 
-    
     data = response.json()
-    
-    # 3. Converter os dados JSON em um DataFrame do Pandas
     df_books = pd.DataFrame(data['items'])
-    
-    # 4. Iniciar a Análise
     print(f"Total de livros encontrados: {data['total']}")
     
-    print("\nInformações do DataFrame:")
-    print(df_books.info())
+    # 3. Autenticar para acessar endpoints protegidos (Desafio 1)
+    print("\nAutenticando...")
+    auth_payload = {
+        "username": "admin", # Use suas credenciais
+        "password": "admin123"
+    }
+    auth_resp = requests.post(f"{BASE_URL}/api/v1/auth/login", json=auth_payload)
+    auth_resp.raise_for_status()
+    TOKEN = auth_resp.json()['access_token']
     
-    print("\nEstatísticas de Preço para 'Science Fiction':")
-    print(df_books['price'].describe())
+    # 4. Usar o token para buscar dados de ML (Desafio 2)
+    print("Buscando dados de features (ML-Ready)...")
+    headers = {
+        "Authorization": f"Bearer {TOKEN}"
+    }
+    ml_params = {
+        "format": "json",
+        "size": 5
+    }
+    ml_resp = requests.get(f"{BASE_URL}/api/v1/ml/features", headers=headers, params=ml_params)
+    ml_resp.raise_for_status()
     
-    print("\nTop 5 livros com melhor avaliação na categoria:")
-    print(df_books.nlargest(5, 'rating')[['title', 'price', 'rating']])
-
+    print("\nFeatures (ML-Ready) - Primeiras 5 linhas:")
+    print(json.dumps(ml_resp.json()['items'], indent=2))
+    
 except requests.exceptions.RequestException as e:
     print(f"Erro ao conectar-se à API: {e}")
 ```
