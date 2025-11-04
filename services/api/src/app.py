@@ -1,3 +1,4 @@
+
 from flask import Flask, jsonify, request, redirect
 import pandas as pd
 import os
@@ -19,7 +20,6 @@ load_dotenv()
 def create_app() -> Flask:
     app = Flask(__name__)
 
-    # --- Configuração do Swagger (Flasgger) ---
     app.config['SWAGGER'] = {
         'title': 'API Pública de Livros - Tech Challenge',
         'uiversion': 3,
@@ -32,7 +32,6 @@ def create_app() -> Flask:
         'specs_route': '/apidocs/'
     }
 
-    # Definição de segurança para JWT no Swagger
     template = app.config['SWAGGER']
     template['securityDefinitions'] = {
         'Bearer': {
@@ -42,11 +41,9 @@ def create_app() -> Flask:
             'description': 'Token de acesso JWT. Formato: "Bearer <token>"'
         }
     }
-    # Inicializa o Swagger
-    swagger = Swagger(app, template=template)
-    # --------------------------------------------
 
-    # Configurações JWT
+    swagger = Swagger(app, template=template)
+
     app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET", "default-super-secret-key")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=30)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
@@ -64,8 +61,6 @@ def create_app() -> Flask:
             return jsonify({"msg": "admin only"}), 403
         return None
     
-    # --- Endpoints ---
-
     @app.get("/")
     def root_redirect():
         """
@@ -406,13 +401,17 @@ def create_app() -> Flask:
         return jsonify({"items": cats, "total": len(cats)})
 
     @app.get("/api/v1/books/price-range")
+    @jwt_required()
     def books_price_range():
         """
         [Insights] Filtra livros por faixa de preço.
         Retorna livros cujo preço está entre 'min' e 'max' (inclusivo).
+        Requer autenticação JWT.
         ---
         tags:
           - Livros (Insights)
+        security:
+          - Bearer: []
         parameters:
           - name: min
             in: query
@@ -439,6 +438,8 @@ def create_app() -> Flask:
             description: Lista de livros filtrada por preço.
           400:
             description: Parâmetros 'min' ou 'max' inválidos.
+          401:
+            description: Token JWT ausente ou inválido.
           503:
             description: Dataset indisponível.
         """
@@ -477,13 +478,17 @@ def create_app() -> Flask:
         })
     
     @app.get("/api/v1/books/top-rated")
+    @jwt_required()
     def top_rated_books():
         """
         [Insights] Lista os livros com melhor avaliação.
         Retorna livros com 'rating' maior ou igual a 'min_rating'.
+        Requer autenticação JWT.
         ---
         tags:
           - Livros (Insights)
+        security:
+          - Bearer: []
         parameters:
           - name: min_rating
             in: query
@@ -505,6 +510,8 @@ def create_app() -> Flask:
         responses:
           200:
             description: Lista de livros com melhor avaliação.
+          401:
+            description: Token JWT ausente ou inválido.
           503:
             description: Dataset indisponível.
         """
@@ -536,14 +543,17 @@ def create_app() -> Flask:
         })
 
     @app.get("/api/v1/stats/categories")
+    @jwt_required()
     def stats_categories():
         """
         [Insights] Estatísticas detalhadas por categoria.
         Retorna contagem de livros e estatísticas de preço (min, max, mean, median)
-        agrupadas por categoria.
+        agrupadas por categoria. Requer autenticação JWT.
         ---
         tags:
           - Estatísticas
+        security:
+          - Bearer: []
         parameters:
           - name: min_count
             in: query
@@ -568,6 +578,8 @@ def create_app() -> Flask:
         responses:
           200:
             description: Estatísticas por categoria.
+          401:
+            description: Token JWT ausente ou inválido.
           503:
             description: Dataset indisponível.
         """
@@ -624,17 +636,22 @@ def create_app() -> Flask:
         })
 
     @app.get("/api/v1/stats/overview")
+    @jwt_required()
     def stats_overview():
         """
         [Insights] Estatísticas gerais da coleção.
         Retorna totais de livros, categorias, estatísticas de preço 
-        e a distribuição de ratings (0 a 5 estrelas).
+        e a distribuição de ratings (0 a 5 estrelas). Requer autenticação JWT.
         ---
         tags:
           - Estatísticas
+        security:
+          - Bearer: []
         responses:
           200:
             description: Visão geral das estatísticas.
+          401:
+            description: Token JWT ausente ou inválido.
           503:
             description: Dataset indisponível.
         """
@@ -677,15 +694,43 @@ def create_app() -> Flask:
             "rating_distribution": rating_dist
         })
     
-    # ========= ML-READY: FEATURES =========
     @app.get("/api/v1/ml/features")
+    @jwt_required()
     def ml_features():
         """
-        Retorna features por livro (paginação opcional):
-          - id, price, rating, category_idx, title_len, title_tok, has_image
-        Params:
-          - page, size
-          - format=csv (opcional) -> retorna CSV
+        [ML] Retorna features por livro.
+        Retorna dados formatados (features) para inferência ou análise.
+        Requer autenticação JWT.
+        ---
+        tags:
+          - ML-Ready
+        security:
+          - Bearer: []
+        parameters:
+          - name: page
+            in: query
+            type: integer
+            required: false
+            default: 1
+          - name: size
+            in: query
+            type: integer
+            required: false
+            default: 100
+          - name: format
+            in: query
+            type: string
+            required: false
+            default: "json"
+            enum: ["json", "csv"]
+            description: Formato de retorno (json paginado ou csv completo).
+        responses:
+          200:
+            description: Lista de features ou arquivo CSV.
+          401:
+            description: Token JWT ausente ou inválido.
+          503:
+            description: Dataset indisponível.
         """
         df = load_books_df()
         if df is None or df.empty:
@@ -695,7 +740,6 @@ def create_app() -> Flask:
 
         fmt = request.args.get("format", "json").lower()
         if fmt == "csv":
-            # exporta tudo (ou pagina se preferir)
             csv = feats.to_csv(index=False)
             return app.response_class(csv, mimetype="text/csv")
         else:
@@ -706,14 +750,33 @@ def create_app() -> Flask:
             items = feats.iloc[start:start + size].to_dict(orient="records")
             return jsonify({"items": items, "page": page, "size": size, "total": total})
 
-    # ========= ML-READY: TRAINING DATA =========
     @app.get("/api/v1/ml/training-data")
+    @jwt_required()
     def ml_training_data():
         """
-        Retorna dataset de treino (features + alvo sintético)
-        Alvo: target_high_rating = 1 se rating >= 4, senão 0.
-        Params:
-          - format=csv/json
+        [ML] Retorna dataset de treinamento completo.
+        Retorna features + alvo sintético (target_high_rating).
+        Requer autenticação JWT.
+        ---
+        tags:
+          - ML-Ready
+        security:
+          - Bearer: []
+        parameters:
+          - name: format
+            in: query
+            type: string
+            required: false
+            default: "csv"
+            enum: ["csv", "json"]
+            description: Formato de retorno (csv ou json).
+        responses:
+          200:
+            description: Dataset de treinamento em formato CSV ou JSON.
+          401:
+            description: Token JWT ausente ou inválido.
+          503:
+            description: Dataset indisponível.
         """
         df = load_books_df()
         if df is None or df.empty:
@@ -729,23 +792,49 @@ def create_app() -> Flask:
             csv = feats.to_csv(index=False)
             return app.response_class(csv, mimetype="text/csv")
         
-    # ========= ML-READY: RECEBIMENTO DE PREDIÇÕES =========
-    # Forma de payload:
-    # {
-    #   "model": "nome_modelo_v1",
-    #   "predictions": [
-    #       {"id": "a-book-id", "y_pred": 0.87},
-    #       {"id": "another-id", "y_pred": 0.12}
-    #   ]
-    # }
     ml_dir = (Path(__file__).resolve().parents[3] / "data" / "ml")
     ml_dir.mkdir(parents=True, exist_ok=True)
 
     @app.post("/api/v1/ml/predictions")
+    @jwt_required()
     def ml_predictions():
         """
-        Recebe predições e persiste em JSONL (para avaliação posterior).
-        Retorna contagem validada.
+        [ML] Recebe e persiste predições de um modelo.
+        Endpoint para um modelo de ML enviar suas predições.
+        Requer autenticação JWT.
+        ---
+        tags:
+          - ML-Ready
+        security:
+          - Bearer: []
+        parameters:
+          - in: body
+            name: body
+            required: true
+            schema:
+              type: object
+              properties:
+                model:
+                  type: string
+                  example: "modelo_v1_teste"
+                predictions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "a897fe39b1053632"
+                      y_pred:
+                        type: number
+                        example: 0.87
+        responses:
+          202:
+            description: Predições recebidas e salvas.
+          400:
+            description: Payload inválido (faltando 'model' ou 'predictions').
+          401:
+            description: Token JWT ausente ou inválido.
         """
         payload = request.get_json(silent=True) or {}
         model = (payload.get("model") or "").strip()
@@ -753,8 +842,6 @@ def create_app() -> Flask:
 
         if not model or not isinstance(preds, list) or not preds:
             return jsonify({"error": "payload inválido: informe 'model' e lista 'predictions'"}), 400
-
-        # validações simples
         ok, bad = [], []
         for p in preds:
             bid = (p.get("id") or "").strip()
@@ -769,7 +856,6 @@ def create_app() -> Flask:
                 continue
             ok.append({"id": bid, "y_pred": y})
 
-        # escreve JSONL com timestamp
         ts = time.strftime("%Y%m%d-%H%M%S")
         out_path = ml_dir / f"predictions_{model}_{ts}.jsonl"
         with open(out_path, "w", encoding="utf-8") as f:
@@ -781,13 +867,12 @@ def create_app() -> Flask:
             "saved_file": str(out_path),
             "accepted": len(ok),
             "rejected": len(bad),
-            "rejected_detail": bad[:5]  # limita retorno
+            "rejected_detail": bad[:5]
         }), 202
 
     return app
 
 if __name__ == "__main__":
     app = create_app()
-    CORS(app) # Adiciona CORS para testes locais
+    CORS(app)
     app.run(host="127.0.0.1", port=5000, debug=True)
-    
